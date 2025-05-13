@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome</title>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 80px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: nowrap; /* Prevent wrapping */
+        }
+
+        .content {
+            text-align: left;
+            max-width: 50%;
+        }
+
+        h1 {
+            font-size: 35px;
+            color: #000000;
+            margin-bottom: 40px;
+            white-space: nowrap; /* Prevent the heading from wrapping */
+        }
+
+        a {
+            display: inline-block;
+            margin: 0 20px 0 0;
+            padding: 12px 24px;
+            background-color: rgb(60, 158, 153);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            font-weight: bold;
+        }
+
+        a:hover {
+            background-color: rgb(60, 158, 153);
+        }
+
+        .image {
+            max-width: 40%;
+            margin-left: 35px; /* Moves the image to the right */
+        }
+
+        .image img {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1><b>Welcome to Personal Budget Tracker</b></h1>
+            <a href="register.html">Register</a>
+            <a href="login.html">Login</a>
+        </div>
+        <div class="image">
+            <img src="tracker_image.png" alt="Personal Budget Tracker">
+        </div>
+    </div>
+
+    <footer>
+        © Rohith 2025. All rights reserved.
+    </footer>
+</body>
+</html>
