@@ -4,7 +4,7 @@ A simple and intuitive web application that helps users **track income, expenses
 
 ## 🔗 Look Demo
 
-👉 [Look Demo]([https://drive.google.com/drive/folders/1SYMP4LhrpFaL-rFf-79IkuYQKQvJ6Mk7](https://drive.google.com/file/d/1Qn3TDdZuQhSy1FOtNEYqqewJtcLzC4ze/view?usp=drive_link))
+👉 [Look Demo]([https://drive.google.com/file/d/1Qn3TDdZuQhSy1FOtNEYqqewJtcLzC4ze/view?usp=drive_link)]
 
 ## 🧰 Tech Stack
 
