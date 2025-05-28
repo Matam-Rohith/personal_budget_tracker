@@ -23,3 +23,4 @@ A simple and intuitive web application that helps users **track income, expenses
 - 📱 Mobile responsive design
 
 ## 📸 Screenshots
+![Header](budget.png)
