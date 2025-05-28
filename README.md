@@ -2,9 +2,9 @@
 
 A simple and intuitive web application that helps users **track income, expenses**, and maintain control over their **financial goals**. This Budget Tracker System allows real-time updates, detailed summaries, and a user-friendly interface for managing personal budgets efficiently.
 
-## 🔗 Live Demo
+## 🔗 Look Demo
 
-👉 [Try it Live](https://drive.google.com/drive/folders/1SYMP4LhrpFaL-rFf-79IkuYQKQvJ6Mk7)
+👉 [Look Demo]([https://drive.google.com/drive/folders/1SYMP4LhrpFaL-rFf-79IkuYQKQvJ6Mk7](https://drive.google.com/file/d/1Qn3TDdZuQhSy1FOtNEYqqewJtcLzC4ze/view?usp=drive_link))
 
 ## 🧰 Tech Stack
 
