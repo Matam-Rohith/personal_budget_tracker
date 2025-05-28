@@ -4,7 +4,7 @@ A simple and intuitive web application that helps users **track income, expenses
 
 ## 🔗 Live Demo
 
-👉 [Try it Live](https://your-live-site-link.com)
+👉 [Try it Live](https://drive.google.com/drive/folders/1SYMP4LhrpFaL-rFf-79IkuYQKQvJ6Mk7)
 
 ## 🧰 Tech Stack
 
@@ -23,13 +23,3 @@ A simple and intuitive web application that helps users **track income, expenses
 - 📱 Mobile responsive design
 
 ## 📸 Screenshots
-
-![Dashboard](./assets/dashboard.png)
-*The main dashboard showing current balance and recent transactions.*
-
-## 🚀 How to Run Locally
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/budget-tracker.git
-   cd budget-tracker
