@@ -289,6 +289,23 @@
         });
 
         if (error) {
+          if (error.message.includes('Email logins are disabled')) {
+            statusEl.className = 'status-msg error';
+            statusEl.innerHTML = `
+              <strong>Email Provider is Disabled in Supabase</strong><br>
+              In your Supabase project, Email logins are currently turned off.<br><br>
+              <strong>To fix this (10 seconds):</strong><br>
+              1. Open <a href="https://supabase.com/dashboard/project/wzdvggdksuuyfnhdlnvo/auth/providers" target="_blank" style="text-decoration:underline;font-weight:700;color:#0f766e;">Supabase Auth Providers</a>.<br>
+              2. Click <strong>Email</strong>.<br>
+              3. Turn <strong>ON</strong> the top toggle: <strong>"Enable Email provider"</strong>.<br>
+              4. Turn <strong>OFF</strong> <em>"Confirm email"</em> (so you don't need email verification).<br>
+              5. Click <strong>Save</strong> at the bottom.
+            `;
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In';
+            return;
+          }
+
           if (error.message.includes('Email not confirmed')) {
             statusEl.className = 'status-msg warn';
             statusEl.innerHTML = `

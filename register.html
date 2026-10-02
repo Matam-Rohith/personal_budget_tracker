@@ -305,6 +305,23 @@
         });
 
         if (error) {
+          if (error.message.includes('Email signups are disabled') || error.message.includes('signups are disabled')) {
+            statusEl.className = 'status-msg error';
+            statusEl.innerHTML = `
+              <strong>Email Provider is Disabled in Supabase</strong><br>
+              In your Supabase project, Email registrations are currently turned off.<br><br>
+              <strong>To fix this in 10 seconds:</strong><br>
+              1. Open <a href="https://supabase.com/dashboard/project/wzdvggdksuuyfnhdlnvo/auth/providers" target="_blank" style="text-decoration:underline;font-weight:700;color:#0f766e;">Supabase Auth Providers</a>.<br>
+              2. Click <strong>Email</strong>.<br>
+              3. Turn <strong>ON</strong> the top toggle: <strong>"Enable Email provider"</strong>.<br>
+              4. Turn <strong>OFF</strong> <em>"Confirm email"</em> (to allow instant login without email verification).<br>
+              5. Click <strong>Save</strong> at the bottom.
+            `;
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Register Account';
+            return;
+          }
+
           if (error.message.includes('User already registered') || error.message.includes('already exists')) {
             throw new Error('An account with this email address already exists. Please go to Sign In.');
           }
