@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In – Personal Budget Tracker</title>
-  <meta name="description" content="Sign in to your personal budget tracker dashboard.">
+  <meta name="description" content="Sign in to your personal budget tracker dashboard with Supabase.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -70,7 +71,7 @@
       border-radius: 10px;
       padding: 36px 32px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
     }
     .auth-title {
@@ -111,7 +112,7 @@
     }
     .btn-submit {
       width: 100%;
-      padding: 10px;
+      padding: 11px;
       background: #0f766e;
       color: #ffffff;
       border: none;
@@ -124,34 +125,6 @@
     }
     .btn-submit:hover { background: #115e59; }
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .demo-callout {
-      margin-top: 20px;
-      padding: 12px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 13px;
-      color: #475569;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .btn-demo {
-      padding: 4px 10px;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #0f766e;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .btn-demo:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-    }
 
     .status-msg {
       padding: 10px 12px;
@@ -186,6 +159,20 @@
       font-weight: 600;
     }
     .auth-footer a:hover { text-decoration: underline; }
+
+    .db-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #0f766e;
+      background: #f0fdfa;
+      border: 1px solid #ccfbf1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -199,15 +186,20 @@
 
   <main class="main-wrapper">
     <div class="auth-card">
+      <div class="db-status-badge">
+        <span style="width:7px;height:7px;border-radius:50%;background:#0f766e;display:inline-block;"></span>
+        <span>Connected to Supabase Authentication</span>
+      </div>
+
       <h1 class="auth-title">Sign in to your account</h1>
-      <p class="auth-sub">Enter your credentials to access your personal ledger.</p>
+      <p class="auth-sub">Enter your email and password to access your personal ledger.</p>
 
       <div id="statusMsg" class="status-msg"></div>
 
       <form id="loginForm">
         <div class="form-group">
-          <label for="username" class="form-label">Username</label>
-          <input type="text" id="username" class="form-input" required autocomplete="username" placeholder="demo">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" class="form-input" required autocomplete="email" placeholder="you@example.com">
         </div>
         <div class="form-group">
           <label for="password" class="form-label">Password</label>
@@ -216,73 +208,84 @@
         <button type="submit" id="submitBtn" class="btn-submit">Sign In</button>
       </form>
 
-      <div class="demo-callout">
-        <div>
-          <span style="font-weight:600;color:#0f172a;">Sample Account</span><br>
-          <span style="font-size:12px;color:#64748b;">demo / demo123</span>
-        </div>
-        <button type="button" class="btn-demo" onclick="fillDemo()">Fill Credentials</button>
-      </div>
-
       <div class="auth-footer">
-        Do not have an account? <a href="register.html">Create one</a>
+        Do not have an account? <a href="register.html">Register with Supabase</a>
       </div>
     </div>
   </main>
 
-  <script>
-    function fillDemo() {
-      document.getElementById('username').value = 'demo';
-      document.getElementById('password').value = 'demo123';
-      document.getElementById('statusMsg').className = 'status-msg';
-      document.getElementById('statusMsg').textContent = '';
+  <script type="module">
+    import { getSupabaseConfig, signInUser } from './supabaseClient.js';
+
+    let supabase = null;
+
+    async function init() {
+      const { url, anonKey } = getSupabaseConfig();
+      if (window.supabase) {
+        supabase = window.supabase.createClient(url, anonKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage: window.localStorage
+          }
+        });
+
+        // 10. Automatically restore the user's session when the application is reopened
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+      }
     }
+
+    init();
 
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
       const statusEl = document.getElementById('statusMsg');
       const submitBtn = document.getElementById('submitBtn');
 
       statusEl.className = 'status-msg';
       statusEl.textContent = '';
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Verifying...';
+      submitBtn.textContent = 'Verifying with Supabase...';
 
       try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, password: p })
+        if (!supabase) {
+          const { url, anonKey } = getSupabaseConfig();
+          supabase = window.supabase.createClient(url, anonKey);
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
         });
-        const result = await response.json();
 
-        if (response.ok && result.ok) {
-          sessionStorage.setItem('bt_auth_token', result.token);
-          sessionStorage.setItem('bt_current_user', result.user.username);
-          sessionStorage.setItem('bt_user_data', JSON.stringify(result.user));
+        if (error) {
+          // 8. Handle incorrect email/password errors
+          if (error.message.includes('Invalid login credentials')) {
+            throw new Error('Incorrect email or password. Please verify your credentials.');
+          }
+          if (error.message.includes('Email not confirmed')) {
+            throw new Error('Please verify your email address or disable email confirmation in your Supabase Auth settings.');
+          }
+          throw error;
+        }
 
+        if (data.session) {
           statusEl.className = 'status-msg success';
-          statusEl.textContent = 'Sign-in verified. Opening dashboard...';
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
-          return;
-        } else {
-          throw new Error(result.error || 'Invalid credentials');
+          statusEl.textContent = 'Authentication successful! Restoring session...';
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 350);
         }
       } catch (err) {
-        // Client-side fallback check
-        const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-        if (users[u] && users[u].password === p) {
-          sessionStorage.setItem('bt_current_user', u);
-          statusEl.className = 'status-msg success';
-          statusEl.textContent = 'Authenticated locally. Opening dashboard...';
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
-          return;
-        }
-
         statusEl.className = 'status-msg error';
-        statusEl.textContent = err.message || 'Unable to sign in. Please verify your credentials.';
+        statusEl.textContent = err.message || 'Unable to sign in. Please try again.';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign In';
       }

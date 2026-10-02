@@ -23,6 +23,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Expose public Supabase configuration to frontend
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL || 'https://wzdvggdksuuyfnhdlnvo.supabase.co',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'sb_publishable_K9EMkQs-SUyGdofydZwjUQ_o9UyfFD9'
+  });
+});
+
 // Authentication middleware
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization || '';

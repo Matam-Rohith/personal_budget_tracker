@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard – Personal Budget Tracker</title>
-  <meta name="description" content="Personal budget ledger, expense breakdown, and financial analytics.">
+  <meta name="description" content="Personal budget ledger, expense breakdown, and financial analytics with Supabase.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -138,6 +139,7 @@
       border-radius: 6px;
       border: 1px solid #e2e8f0;
       background: #f8fafc;
+      max-width: 220px;
     }
     .user-avatar {
       width: 22px;
@@ -150,6 +152,7 @@
       justify-content: center;
       font-size: 11px;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
     /* Main Container */
@@ -158,6 +161,26 @@
       margin: 0 auto;
       padding: 28px 24px 60px;
       width: 100%;
+    }
+
+    /* Setup Banner */
+    .setup-banner {
+      display: none;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .setup-banner code {
+      background: #dbeafe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 600;
     }
 
     /* Page Header */
@@ -552,44 +575,49 @@
       <div class="nav-center">
         <div class="month-picker-wrap">
           <label for="monthSelect" style="font-size:12px;color:#64748b;font-weight:600;">Period:</label>
-          <select id="monthSelect" onchange="onPeriodChange()">
+          <select id="monthSelect">
             <!-- Populated via JS -->
           </select>
         </div>
       </div>
 
       <div class="nav-right">
-        <button class="btn btn-primary" onclick="openAddModal()">
+        <button class="btn btn-primary" id="btnOpenAddModal">
           <span>+ Add Entry</span>
         </button>
-        <button class="btn btn-outline" onclick="exportCSV()" title="Export transactions to CSV">
+        <button class="btn btn-outline" id="btnExportCSV" title="Export transactions to CSV">
           Export CSV
         </button>
-        <button class="btn btn-subtle" onclick="openBudgetModal()" title="Configure monthly budget">
+        <button class="btn btn-subtle" id="btnOpenBudgetModal" title="Configure monthly budget">
           Settings
         </button>
-        <div class="user-pill">
+        <div class="user-pill" title="Authenticated Supabase User">
           <span class="user-avatar" id="avatarInitial">U</span>
-          <span id="headerUsername">User</span>
+          <span id="headerUsername" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loading...</span>
         </div>
-        <button class="btn btn-subtle" onclick="logout()">Sign Out</button>
+        <button class="btn btn-subtle" id="btnLogout">Sign Out</button>
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="dashboard-content">
+    <!-- Notice if SQL migration has not been executed yet in Supabase -->
+    <div id="setupBanner" class="setup-banner">
+      <strong>Supabase Table Setup Required:</strong> To persist data in PostgreSQL, please run the SQL script in <code>supabase-schema.sql</code> in your Supabase SQL Editor.
+    </div>
+
     <div class="page-header">
       <div>
         <h1 class="page-title" id="greetingText">Financial Ledger</h1>
-        <p class="page-subtitle" id="periodSubtitle">Overview and double-entry transaction record.</p>
+        <p class="page-subtitle" id="periodSubtitle">Authenticated PostgreSQL records enforced by Row Level Security.</p>
       </div>
     </div>
 
     <!-- Alert Banner (shown only on threshold breach) -->
     <div id="budgetAlertBanner" class="alert-banner">
       <div id="budgetAlertText"></div>
-      <button class="btn btn-subtle" style="background:#fff;padding:4px 10px;font-size:12px;" onclick="openBudgetModal()">Adjust Limit</button>
+      <button class="btn btn-subtle" style="background:#fff;padding:4px 10px;font-size:12px;" id="btnAdjustAlert">Adjust Limit</button>
     </div>
 
     <!-- Key Metrics Grid -->
@@ -654,17 +682,17 @@
 
       <div class="ledger-controls">
         <div class="controls-left">
-          <input type="text" id="searchInput" class="search-input" placeholder="Search by note, category, or amount..." oninput="onFilterChange()">
+          <input type="text" id="searchInput" class="search-input" placeholder="Search by description or category...">
           
           <div class="segmented-control">
-            <button class="seg-btn active" id="segAll" onclick="setFilterType('all')">All</button>
-            <button class="seg-btn" id="segExpense" onclick="setFilterType('expense')">Expenses</button>
-            <button class="seg-btn" id="segIncome" onclick="setFilterType('income')">Income</button>
+            <button class="seg-btn active" id="segAll">All</button>
+            <button class="seg-btn" id="segExpense">Expenses</button>
+            <button class="seg-btn" id="segIncome">Income</button>
           </div>
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="categoryFilter" class="filter-select" onchange="onFilterChange()">
+          <select id="categoryFilter" class="filter-select">
             <option value="all">All Categories</option>
             <option value="Housing & Utilities">Housing & Utilities</option>
             <option value="Food & Dining">Food & Dining</option>
@@ -678,7 +706,7 @@
             <option value="Other">Other</option>
           </select>
 
-          <select id="sortSelect" class="filter-select" onchange="onFilterChange()">
+          <select id="sortSelect" class="filter-select">
             <option value="date_desc">Newest First</option>
             <option value="date_asc">Oldest First</option>
             <option value="amount_desc">Highest Amount</option>
@@ -692,7 +720,7 @@
           <thead>
             <tr>
               <th style="width:120px;">Date</th>
-              <th>Description / Payee</th>
+              <th>Description / Note</th>
               <th style="width:180px;">Category</th>
               <th style="width:100px;">Type</th>
               <th class="num" style="width:140px;">Amount</th>
@@ -700,12 +728,12 @@
             </tr>
           </thead>
           <tbody id="ledgerTableBody">
-            <!-- Populated via JS -->
+            <!-- Populated via Supabase -->
           </tbody>
         </table>
         <div id="tableEmptyState" class="empty-state" style="display:none;">
           <h4>No transactions recorded for this period</h4>
-          <p>Click "+ Add Entry" above to record a credit or debit.</p>
+          <p>Click "+ Add Entry" to record your first transaction in Supabase PostgreSQL.</p>
         </div>
       </div>
     </section>
@@ -716,14 +744,14 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3>Record New Transaction</h3>
-        <button class="modal-close" onclick="closeAddModal()">&times;</button>
+        <button class="modal-close" id="btnCloseAddModal">&times;</button>
       </div>
-      <form id="addTxForm" onsubmit="handleCreateTransaction(event)">
+      <form id="addTxForm">
         <div class="modal-body">
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Type</label>
-              <select id="modalTxType" class="form-control" onchange="onTxTypeChange('modalTxCat', this.value)">
+              <select id="modalTxType" class="form-control">
                 <option value="expense">Expense (Debit)</option>
                 <option value="income">Income (Credit)</option>
               </select>
@@ -749,12 +777,12 @@
 
           <div class="form-group">
             <label class="form-label">Description / Note</label>
-            <input type="text" id="modalTxNote" class="form-control" placeholder="e.g. Monthly rent, Client invoice, Groceries">
+            <input type="text" id="modalTxNote" class="form-control" placeholder="e.g. Groceries, Rent, Client invoice">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Transaction</button>
+          <button type="button" class="btn btn-outline" id="btnCancelAddModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitAdd">Save Transaction</button>
         </div>
       </form>
     </div>
@@ -765,15 +793,15 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3>Edit Transaction</h3>
-        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        <button class="modal-close" id="btnCloseEditModal">&times;</button>
       </div>
-      <form id="editTxForm" onsubmit="handleUpdateTransaction(event)">
+      <form id="editTxForm">
         <input type="hidden" id="editTxId">
         <div class="modal-body">
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Type</label>
-              <select id="editTxType" class="form-control" onchange="onTxTypeChange('editTxCat', this.value)">
+              <select id="editTxType" class="form-control">
                 <option value="expense">Expense (Debit)</option>
                 <option value="income">Income (Credit)</option>
               </select>
@@ -803,8 +831,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Update Entry</button>
+          <button type="button" class="btn btn-outline" id="btnCancelEditModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitEdit">Update Entry</button>
         </div>
       </form>
     </div>
@@ -815,28 +843,19 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3>Monthly Budget Settings</h3>
-        <button class="modal-close" onclick="closeBudgetModal()">&times;</button>
+        <button class="modal-close" id="btnCloseBudgetModal">&times;</button>
       </div>
-      <form id="budgetForm" onsubmit="handleSaveBudget(event)">
+      <form id="budgetForm">
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Monthly Expense Ceiling (₹)</label>
-            <input type="number" id="budgetLimitInput" class="form-control" min="1000" step="500" required>
-            <span style="font-size:12px;color:#64748b;margin-top:4px;display:block;">You will receive warnings when monthly expenses exceed 80% and 100% of this cap.</span>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Currency Symbol</label>
-            <select id="currencyInput" class="form-control">
-              <option value="₹">₹ (INR - Indian Rupee)</option>
-              <option value="$">$ (USD - US Dollar)</option>
-              <option value="€">€ (EUR - Euro)</option>
-              <option value="£">£ (GBP - British Pound)</option>
-            </select>
+            <input type="number" id="budgetLimitInput" class="form-control" min="500" step="500" required>
+            <span style="font-size:12px;color:#64748b;margin-top:4px;display:block;">Saved to Supabase budgets table under your account ID.</span>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeBudgetModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Settings</button>
+          <button type="button" class="btn btn-outline" id="btnCancelBudgetModal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Ceiling</button>
         </div>
       </form>
     </div>
@@ -845,16 +864,22 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
 
-  <script>
-    // State management
-    let authToken = sessionStorage.getItem('bt_auth_token');
-    let currentUser = sessionStorage.getItem('bt_current_user');
+  <script type="module">
+    import {
+      getSupabaseConfig,
+      signUpUser,
+      signInUser,
+      signOutUser
+    } from './supabaseClient.js';
+
+    let supabase = null;
+    let currentUser = null;
+    let userProfile = null;
     let currentCurrency = '₹';
     let currentMonthlyBudget = 25000;
-    let selectedMonth = '';
+    let selectedMonth = ''; // YYYY-MM
     let filterType = 'all';
-    let transactions = [];
-    let summaryData = null;
+    let userTransactions = [];
 
     let categoryChartInstance = null;
     let cashFlowChartInstance = null;
@@ -896,18 +921,86 @@
       setTimeout(() => t.classList.remove('show'), 2400);
     }
 
-    function logout() {
-      if (authToken) {
-        fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + authToken }
-        }).catch(() => {});
+    // 1. Initialize Supabase Client
+    function initClient() {
+      const { url, anonKey } = getSupabaseConfig();
+      if (!window.supabase) {
+        console.error('Supabase library not loaded');
+        return null;
       }
-      sessionStorage.clear();
+      supabase = window.supabase.createClient(url, anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage
+        }
+      });
+      return supabase;
+    }
+
+    // 2. Authentication Protection & Session Restoration
+    async function verifyAuth() {
+      if (!supabase) initClient();
+      if (!supabase) return false;
+
+      // 4. Persistent authenticated session & 10. Automatically restore session
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error || !session || !session.user) {
+        // 6. Redirect unauthenticated users to the login page
+        window.location.href = 'login.html';
+        return false;
+      }
+
+      currentUser = session.user;
+
+      // 7. Display the logged-in user's information
+      const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '';
+      const displayTitle = fullName || currentUser.email.split('@')[0];
+
+      document.getElementById('headerUsername').textContent = displayTitle;
+      document.getElementById('headerUsername').title = currentUser.email;
+      document.getElementById('avatarInitial').textContent = displayTitle.charAt(0).toUpperCase();
+      document.getElementById('greetingText').textContent = `Welcome back, ${displayTitle}`;
+
+      // Query profiles table
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        if (profile?.full_name) {
+          userProfile = profile;
+          document.getElementById('headerUsername').textContent = profile.full_name;
+          document.getElementById('avatarInitial').textContent = profile.full_name.charAt(0).toUpperCase();
+          document.getElementById('greetingText').textContent = `Welcome back, ${profile.full_name}`;
+        }
+      } catch (e) {
+        // Handled silently
+      }
+
+      // Listen for auth state changes (e.g. sign out from another tab)
+      supabase.auth.onAuthStateChange((event, newSession) => {
+        if (!newSession && event === 'SIGNED_OUT') {
+          window.location.href = 'login.html';
+        }
+      });
+
+      return true;
+    }
+
+    // 3. User Logout
+    async function handleLogout() {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
       window.location.href = 'login.html';
     }
 
-    function populateMonthDropdown() {
+    function populatePeriodDropdown() {
       const select = document.getElementById('monthSelect');
       select.innerHTML = '';
 
@@ -924,14 +1017,14 @@
         select.appendChild(opt);
       }
       select.value = selectedMonth;
+
+      select.addEventListener('change', () => {
+        selectedMonth = select.value;
+        loadUserData();
+      });
     }
 
-    function onPeriodChange() {
-      selectedMonth = document.getElementById('monthSelect').value;
-      loadAllData();
-    }
-
-    function onTxTypeChange(selectId, type) {
+    function populateCategoryOptions(selectId, type) {
       const sel = document.getElementById(selectId);
       sel.innerHTML = '';
       const list = type === 'income' ? incomeCategories : expenseCategories;
@@ -943,157 +1036,131 @@
       });
     }
 
-    // Auth initialization
-    async function checkAuth() {
-      if (!currentUser && !authToken) {
-        window.location.href = 'login.html';
-        return false;
-      }
+    // 4. Fetch Real Data from Supabase PostgreSQL (Enforced by RLS)
+    async function loadUserData() {
+      if (!currentUser || !supabase) return;
 
-      document.getElementById('headerUsername').textContent = currentUser || 'User';
-      document.getElementById('avatarInitial').textContent = (currentUser || 'U').charAt(0).toUpperCase();
+      const [yearStr, monthStr] = selectedMonth.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
 
-      if (authToken) {
-        try {
-          const res = await fetch('/api/auth/me', {
-            headers: { 'Authorization': 'Bearer ' + authToken }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            currentUser = data.user.username;
-            currentCurrency = data.user.currency || '₹';
-            currentMonthlyBudget = data.user.monthlyBudget || 25000;
-            document.getElementById('headerUsername').textContent = data.user.name || data.user.username;
-            document.getElementById('greetingText').textContent = `Welcome, ${data.user.name || data.user.username}`;
-            return true;
-          }
-        } catch (err) {
-          console.warn('API authentication check failed, operating with stored session');
+      // Date boundaries for active month
+      const startDate = `${year}-${monthStr}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+      // A. Query Budgets table
+      try {
+        const { data: budgetData, error: budgetError } = await supabase
+          .from('budgets')
+          .select('*')
+          .eq('month', month)
+          .eq('year', year)
+          .maybeSingle();
+
+        if (budgetError && budgetError.code === '42P01') {
+          // Table doesn't exist yet
+          document.getElementById('setupBanner').style.display = 'block';
+        } else if (budgetData) {
+          currentMonthlyBudget = parseFloat(budgetData.amount);
         }
+      } catch (err) {
+        console.warn('Budgets query warning:', err);
       }
-      return true;
+
+      // B. Query Transactions table (RLS automatically enforces auth.uid() = user_id)
+      try {
+        const { data: txs, error: txError } = await supabase
+          .from('transactions')
+          .select('*')
+          .order('transaction_date', { ascending: false });
+
+        if (txError) {
+          if (txError.code === '42P01') {
+            document.getElementById('setupBanner').style.display = 'block';
+          } else {
+            console.error('Transactions query error:', txError.message);
+          }
+          userTransactions = [];
+        } else {
+          document.getElementById('setupBanner').style.display = 'none';
+          userTransactions = txs || [];
+        }
+      } catch (err) {
+        console.error('Failed to load transactions:', err);
+        userTransactions = [];
+      }
+
+      renderDashboardState();
     }
 
-    // Load data from server or localStorage
-    async function loadAllData() {
-      let loadedFromApi = false;
+    function renderDashboardState() {
+      const [yearStr, monthStr] = selectedMonth.split('-');
+      const monthPrefix = `${yearStr}-${monthStr}`;
 
-      if (authToken) {
-        try {
-          const [sumRes, txRes] = await Promise.all([
-            fetch(`/api/summary?month=${selectedMonth}`, {
-              headers: { 'Authorization': 'Bearer ' + authToken }
-            }),
-            fetch(`/api/transactions?month=${selectedMonth}&sortBy=date&sortOrder=desc`, {
-              headers: { 'Authorization': 'Bearer ' + authToken }
-            })
-          ]);
+      // Filter active month
+      const monthTxs = userTransactions.filter(t => t.transaction_date && t.transaction_date.startsWith(monthPrefix));
 
-          if (sumRes.ok && txRes.ok) {
-            const sumData = await sumRes.json();
-            const txData = await txRes.json();
-            summaryData = sumData;
-            transactions = txData.transactions;
-            currentCurrency = sumData.currency || '₹';
-            currentMonthlyBudget = sumData.stats.monthlyBudget || 25000;
-            loadedFromApi = true;
-          }
-        } catch (err) {
-          console.warn('Could not fetch from server API, utilizing local store:', err);
-        }
-      }
+      let monthIncome = 0;
+      let monthExpense = 0;
+      const categoryTotals = {};
 
-      if (!loadedFromApi) {
-        loadFromLocalStorage();
-      }
-
-      renderMetrics();
-      renderCharts();
-      renderLedger();
-    }
-
-    function loadFromLocalStorage() {
-      const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-      const u = users[currentUser] || { transactions: [], budget: 25000 };
-      currentMonthlyBudget = u.budget || 25000;
-
-      const allTxs = u.transactions || [];
-      const monthTxs = allTxs.filter(t => t.date && t.date.startsWith(selectedMonth));
-
-      let inc = 0, exp = 0;
-      const cats = {};
       monthTxs.forEach(t => {
-        if (t.type === 'income') inc += t.amount;
-        else {
-          exp += t.amount;
-          cats[t.category] = (cats[t.category] || 0) + t.amount;
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'income') {
+          monthIncome += amt;
+        } else {
+          monthExpense += amt;
+          categoryTotals[t.category] = (categoryTotals[t.category] || 0) + amt;
         }
       });
 
-      const net = inc - exp;
-      const savingsRate = inc > 0 ? Math.round((net / inc) * 100) : 0;
-      const budgetUsedPct = currentMonthlyBudget > 0 ? Math.round((exp / currentMonthlyBudget) * 100) : 0;
+      const netSavings = monthIncome - monthExpense;
+      const savingsRate = monthIncome > 0 ? Math.round((netSavings / monthIncome) * 100) : 0;
+      const budgetRemaining = Math.max(0, currentMonthlyBudget - monthExpense);
+      const budgetUsedPct = currentMonthlyBudget > 0 ? Math.round((monthExpense / currentMonthlyBudget) * 100) : 0;
 
-      summaryData = {
-        currency: currentCurrency,
-        stats: {
-          totalIncome: inc,
-          totalExpense: exp,
-          netSavings: net,
-          savingsRate,
-          monthlyBudget: currentMonthlyBudget,
-          budgetSpent: exp,
-          budgetRemaining: Math.max(0, currentMonthlyBudget - exp),
-          budgetUsedPct
-        },
-        categoryBreakdown: Object.entries(cats).map(([category, amount]) => ({
-          category,
-          amount,
-          percentage: exp > 0 ? Math.round((amount / exp) * 100) : 0
-        })),
-        cashFlowHistory: []
-      };
-
-      transactions = monthTxs.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }
-
-    function renderMetrics() {
-      if (!summaryData) return;
-      const s = summaryData.stats;
-
-      document.getElementById('statIncome').textContent = fmt(s.totalIncome);
-      document.getElementById('statExpense').textContent = fmt(s.totalExpense);
+      // Update stat cards
+      document.getElementById('statIncome').textContent = fmt(monthIncome);
+      document.getElementById('statExpense').textContent = fmt(monthExpense);
 
       const netEl = document.getElementById('statSavings');
-      netEl.textContent = fmt(s.netSavings);
-      netEl.style.color = s.netSavings >= 0 ? '#047857' : '#be123c';
-      document.getElementById('statSavingsRate').textContent = `Savings rate: ${s.savingsRate}% of income`;
+      netEl.textContent = fmt(netSavings);
+      netEl.style.color = netSavings >= 0 ? '#047857' : '#be123c';
+      document.getElementById('statSavingsRate').textContent = `Savings rate: ${savingsRate}% of income`;
 
-      document.getElementById('statBudgetUsed').textContent = `${s.budgetUsedPct}%`;
-      document.getElementById('statBudgetRemaining').textContent = `${fmt(s.budgetRemaining)} of ${fmt(s.monthlyBudget)} left`;
+      document.getElementById('statBudgetUsed').textContent = `${budgetUsedPct}%`;
+      document.getElementById('statBudgetRemaining').textContent = `${fmt(budgetRemaining)} of ${fmt(currentMonthlyBudget)} left`;
 
       const bar = document.getElementById('statProgressBar');
-      const pctClamped = Math.min(100, s.budgetUsedPct);
+      const pctClamped = Math.min(100, budgetUsedPct);
       bar.style.width = pctClamped + '%';
-      bar.className = 'budget-progress-bar' + (s.budgetUsedPct >= 100 ? ' over' : s.budgetUsedPct >= 80 ? ' warn' : '');
+      bar.className = 'budget-progress-bar' + (budgetUsedPct >= 100 ? ' over' : budgetUsedPct >= 80 ? ' warn' : '');
 
-      // Alert banner
+      // Budget threshold alert
       const banner = document.getElementById('budgetAlertBanner');
       const bannerText = document.getElementById('budgetAlertText');
-      if (s.budgetUsedPct >= 100) {
+      if (budgetUsedPct >= 100) {
         banner.className = 'alert-banner danger';
-        bannerText.innerHTML = `<strong>Budget Limit Exceeded:</strong> You have spent ${fmt(s.totalExpense)} which is ${fmt(s.totalExpense - s.monthlyBudget)} over your monthly limit.`;
-      } else if (s.budgetUsedPct >= 80) {
+        bannerText.innerHTML = `<strong>Budget Limit Exceeded:</strong> You have spent ${fmt(monthExpense)} which is ${fmt(monthExpense - currentMonthlyBudget)} over your monthly ceiling.`;
+      } else if (budgetUsedPct >= 80) {
         banner.className = 'alert-banner warn';
-        bannerText.innerHTML = `<strong>Budget Warning:</strong> You have reached ${s.budgetUsedPct}% of your allocated monthly spending ceiling. Only ${fmt(s.budgetRemaining)} remains.`;
+        bannerText.innerHTML = `<strong>Budget Warning:</strong> You have utilized ${budgetUsedPct}% of your allocated monthly spending ceiling. Only ${fmt(budgetRemaining)} remains.`;
       } else {
         banner.className = 'alert-banner';
       }
+
+      renderCharts(categoryTotals, monthExpense);
+      renderLedgerTable(monthTxs);
     }
 
-    function renderCharts() {
-      // Category Breakdown Chart
-      const cats = summaryData?.categoryBreakdown || [];
+    function renderCharts(categoryTotals, totalExpense) {
+      // 1. Category Doughnut Chart
+      const cats = Object.entries(categoryTotals).map(([cat, amt]) => ({
+        category: cat,
+        amount: amt
+      })).sort((a, b) => b.amount - a.amount);
+
       const labels = cats.map(c => c.category);
       const data = cats.map(c => c.amount);
       const colors = [
@@ -1133,7 +1200,8 @@
                 callbacks: {
                   label: function(item) {
                     const val = item.raw || 0;
-                    return ` ${item.label}: ${fmt(val)}`;
+                    const pct = totalExpense > 0 ? Math.round((val / totalExpense) * 100) : 0;
+                    return ` ${item.label}: ${fmt(val)} (${pct}%)`;
                   }
                 }
               }
@@ -1149,73 +1217,77 @@
         ctxCat.fillText('No recorded expenses for this period', 150, 110);
       }
 
-      // Cash Flow Trends Chart
-      const flow = summaryData?.cashFlowHistory || [];
+      // 2. 6-Month Cash Flow Bar Chart
+      const now = new Date();
+      const monthsList = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('en-US', { month: 'short' });
+
+        let inc = 0;
+        let exp = 0;
+        userTransactions.forEach(t => {
+          if (t.transaction_date && t.transaction_date.startsWith(prefix)) {
+            const amt = parseFloat(t.amount) || 0;
+            if (t.type === 'income') inc += amt;
+            else exp += amt;
+          }
+        });
+
+        monthsList.push({ label, income: Math.round(inc), expense: Math.round(exp) });
+      }
+
       if (cashFlowChartInstance) cashFlowChartInstance.destroy();
       const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
 
-      if (flow.length > 0) {
-        cashFlowChartInstance = new Chart(ctxFlow, {
-          type: 'bar',
-          data: {
-            labels: flow.map(f => f.label),
-            datasets: [
-              {
-                label: 'Income',
-                data: flow.map(f => f.income),
-                backgroundColor: '#10b981',
-                borderRadius: 4
-              },
-              {
-                label: 'Expense',
-                data: flow.map(f => f.expense),
-                backgroundColor: '#f43f5e',
-                borderRadius: 4
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { grid: { display: false } },
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  callback: val => currentCurrency + (val >= 1000 ? (val / 1000) + 'k' : val)
-                }
-              }
+      cashFlowChartInstance = new Chart(ctxFlow, {
+        type: 'bar',
+        data: {
+          labels: monthsList.map(m => m.label),
+          datasets: [
+            {
+              label: 'Income',
+              data: monthsList.map(m => m.income),
+              backgroundColor: '#10b981',
+              borderRadius: 4
             },
-            plugins: {
-              legend: {
-                position: 'top',
-                labels: { boxWidth: 12, font: { family: 'Plus Jakarta Sans', size: 11 } }
+            {
+              label: 'Expense',
+              data: monthsList.map(m => m.expense),
+              backgroundColor: '#f43f5e',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: val => currentCurrency + (val >= 1000 ? (val / 1000) + 'k' : val)
               }
             }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 12, font: { family: 'Plus Jakarta Sans', size: 11 } }
+            }
           }
-        });
-      }
+        }
+      });
     }
 
-    function setFilterType(type) {
-      filterType = type;
-      ['segAll', 'segExpense', 'segIncome'].forEach(id => document.getElementById(id).classList.remove('active'));
-      if (type === 'all') document.getElementById('segAll').classList.add('active');
-      if (type === 'expense') document.getElementById('segExpense').classList.add('active');
-      if (type === 'income') document.getElementById('segIncome').classList.add('active');
-      renderLedger();
-    }
-
-    function onFilterChange() {
-      renderLedger();
-    }
-
-    function renderLedger() {
+    function renderLedgerTable(monthTxs) {
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
       const cat = document.getElementById('categoryFilter').value;
       const sort = document.getElementById('sortSelect').value;
 
-      let list = [...transactions];
+      let list = [...monthTxs];
 
       if (filterType !== 'all') {
         list = list.filter(t => t.type === filterType);
@@ -1227,7 +1299,7 @@
 
       if (q) {
         list = list.filter(t =>
-          (t.note && t.note.toLowerCase().includes(q)) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
           (t.category && t.category.toLowerCase().includes(q)) ||
           String(t.amount).includes(q)
         );
@@ -1235,10 +1307,10 @@
 
       // Sort
       list.sort((a, b) => {
-        if (sort === 'date_desc') return new Date(b.date) - new Date(a.date);
-        if (sort === 'date_asc') return new Date(a.date) - new Date(b.date);
-        if (sort === 'amount_desc') return b.amount - a.amount;
-        if (sort === 'amount_asc') return a.amount - b.amount;
+        if (sort === 'date_desc') return new Date(b.transaction_date) - new Date(a.transaction_date);
+        if (sort === 'date_asc') return new Date(a.transaction_date) - new Date(b.transaction_date);
+        if (sort === 'amount_desc') return parseFloat(b.amount) - parseFloat(a.amount);
+        if (sort === 'amount_asc') return parseFloat(a.amount) - parseFloat(b.amount);
         return 0;
       });
 
@@ -1256,11 +1328,12 @@
       emptyState.style.display = 'none';
       tbody.innerHTML = list.map(t => {
         const isInc = t.type === 'income';
+        const safeId = t.id;
         return `
           <tr>
-            <td class="font-mono" style="color:#64748b;">${t.date}</td>
-            <td style="font-weight:600;">${t.note || '<span style="color:#94a3b8;font-weight:400;">No description</span>'}</td>
-            <td>${t.category}</td>
+            <td class="font-mono" style="color:#64748b;">${t.transaction_date}</td>
+            <td style="font-weight:600;">${t.description || '<span style="color:#94a3b8;font-weight:400;">No description</span>'}</td>
+            <td>${t.category || 'General'}</td>
             <td>
               <span class="type-indicator ${isInc ? 'income' : 'expense'}">
                 ${isInc ? 'Credit' : 'Debit'}
@@ -1271,18 +1344,26 @@
             </td>
             <td class="num">
               <div class="tx-actions">
-                <button class="btn-action" onclick="openEditModal('${t.id}')">Edit</button>
-                <button class="btn-action del" onclick="handleDeleteTransaction('${t.id}')">Delete</button>
+                <button class="btn-action" data-edit-id="${safeId}">Edit</button>
+                <button class="btn-action del" data-del-id="${safeId}">Delete</button>
               </div>
             </td>
           </tr>
         `;
       }).join('');
+
+      // Wire action buttons
+      tbody.querySelectorAll('[data-edit-id]').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(btn.getAttribute('data-edit-id')));
+      });
+      tbody.querySelectorAll('[data-del-id]').forEach(btn => {
+        btn.addEventListener('click', () => handleDeleteTransaction(btn.getAttribute('data-del-id')));
+      });
     }
 
-    // Modal Handlers
+    // Modal Operations
     function openAddModal() {
-      onTxTypeChange('modalTxCat', 'expense');
+      populateCategoryOptions('modalTxCat', 'expense');
       document.getElementById('modalTxType').value = 'expense';
       document.getElementById('modalTxAmount').value = '';
       document.getElementById('modalTxNote').value = '';
@@ -1295,16 +1376,16 @@
     }
 
     function openEditModal(id) {
-      const tx = transactions.find(t => String(t.id) === String(id));
+      const tx = userTransactions.find(t => String(t.id) === String(id));
       if (!tx) return;
 
       document.getElementById('editTxId').value = tx.id;
       document.getElementById('editTxType').value = tx.type;
-      onTxTypeChange('editTxCat', tx.type);
-      document.getElementById('editTxCat').value = tx.category;
+      populateCategoryOptions('editTxCat', tx.type);
+      document.getElementById('editTxCat').value = tx.category || 'Other';
       document.getElementById('editTxAmount').value = tx.amount;
-      document.getElementById('editTxDate').value = tx.date;
-      document.getElementById('editTxNote').value = tx.note || '';
+      document.getElementById('editTxDate').value = tx.transaction_date;
+      document.getElementById('editTxNote').value = tx.description || '';
 
       document.getElementById('editModal').classList.add('show');
     }
@@ -1315,7 +1396,6 @@
 
     function openBudgetModal() {
       document.getElementById('budgetLimitInput').value = currentMonthlyBudget;
-      document.getElementById('currencyInput').value = currentCurrency;
       document.getElementById('budgetModal').classList.add('show');
     }
 
@@ -1323,190 +1403,209 @@
       document.getElementById('budgetModal').classList.remove('show');
     }
 
-    // API Mutations
-    async function handleCreateTransaction(e) {
+    // Transaction CRUD Handlers in Supabase
+    async function handleAddTransactionSubmit(e) {
       e.preventDefault();
       const type = document.getElementById('modalTxType').value;
       const category = document.getElementById('modalTxCat').value;
       const amount = parseFloat(document.getElementById('modalTxAmount').value);
-      const date = document.getElementById('modalTxDate').value;
-      const note = document.getElementById('modalTxNote').value.trim();
+      const transaction_date = document.getElementById('modalTxDate').value;
+      const description = document.getElementById('modalTxNote').value.trim();
 
-      if (authToken) {
-        try {
-          const res = await fetch('/api/transactions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + authToken
-            },
-            body: JSON.stringify({ type, category, amount, date, note })
-          });
-          if (res.ok) {
-            closeAddModal();
-            showToast('Transaction saved to ledger');
-            loadAllData();
-            return;
-          }
-        } catch (err) {
-          console.warn('API save failed, persisting locally:', err);
-        }
+      const btn = document.getElementById('btnSubmitAdd');
+      btn.disabled = true;
+      btn.textContent = 'Saving to Supabase...';
+
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert([{
+            user_id: currentUser.id,
+            amount,
+            type,
+            category,
+            description,
+            transaction_date
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        closeAddModal();
+        showToast('Transaction saved in Supabase');
+        loadUserData();
+      } catch (err) {
+        console.error('Insert error:', err);
+        alert('Could not save transaction: ' + (err.message || 'Please check if supabase-schema.sql was executed in Supabase SQL editor.'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Transaction';
       }
-
-      // Local fallback
-      const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-      const u = users[currentUser] || { transactions: [] };
-      u.transactions.push({ id: Date.now(), type, category, amount, date, note });
-      users[currentUser] = u;
-      localStorage.setItem('bt_users', JSON.stringify(users));
-
-      closeAddModal();
-      showToast('Transaction recorded locally');
-      loadAllData();
     }
 
-    async function handleUpdateTransaction(e) {
+    async function handleEditTransactionSubmit(e) {
       e.preventDefault();
       const id = document.getElementById('editTxId').value;
       const type = document.getElementById('editTxType').value;
       const category = document.getElementById('editTxCat').value;
       const amount = parseFloat(document.getElementById('editTxAmount').value);
-      const date = document.getElementById('editTxDate').value;
-      const note = document.getElementById('editTxNote').value.trim();
+      const transaction_date = document.getElementById('editTxDate').value;
+      const description = document.getElementById('editTxNote').value.trim();
 
-      if (authToken) {
-        try {
-          const res = await fetch(`/api/transactions/${id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + authToken
-            },
-            body: JSON.stringify({ type, category, amount, date, note })
-          });
-          if (res.ok) {
-            closeEditModal();
-            showToast('Transaction updated');
-            loadAllData();
-            return;
-          }
-        } catch (err) {
-          console.warn('API update failed, updating locally:', err);
-        }
+      const btn = document.getElementById('btnSubmitEdit');
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+
+      try {
+        const { error } = await supabase
+          .from('transactions')
+          .update({
+            amount,
+            type,
+            category,
+            description,
+            transaction_date
+          })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        closeEditModal();
+        showToast('Transaction updated in Supabase');
+        loadUserData();
+      } catch (err) {
+        console.error('Update error:', err);
+        alert('Could not update transaction: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Entry';
       }
-
-      // Local fallback
-      const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-      const u = users[currentUser] || { transactions: [] };
-      u.transactions = u.transactions.map(t => String(t.id) === String(id) ? { ...t, type, category, amount, date, note } : t);
-      users[currentUser] = u;
-      localStorage.setItem('bt_users', JSON.stringify(users));
-
-      closeEditModal();
-      showToast('Transaction updated locally');
-      loadAllData();
     }
 
     async function handleDeleteTransaction(id) {
-      if (!confirm('Are you sure you want to remove this transaction entry?')) return;
+      if (!confirm('Are you sure you want to delete this transaction from Supabase?')) return;
 
-      if (authToken) {
-        try {
-          const res = await fetch(`/api/transactions/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + authToken }
-          });
-          if (res.ok) {
-            showToast('Entry deleted from ledger');
-            loadAllData();
-            return;
-          }
-        } catch (err) {
-          console.warn('API delete failed, removing locally:', err);
-        }
+      try {
+        const { error } = await supabase
+          .from('transactions')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        showToast('Transaction deleted');
+        loadUserData();
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('Could not delete transaction: ' + err.message);
       }
-
-      // Local fallback
-      const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-      const u = users[currentUser] || { transactions: [] };
-      u.transactions = u.transactions.filter(t => String(t.id) !== String(id));
-      users[currentUser] = u;
-      localStorage.setItem('bt_users', JSON.stringify(users));
-
-      showToast('Entry deleted');
-      loadAllData();
     }
 
-    async function handleSaveBudget(e) {
+    async function handleSaveBudgetSubmit(e) {
       e.preventDefault();
-      const budget = parseFloat(document.getElementById('budgetLimitInput').value);
-      const currency = document.getElementById('currencyInput').value;
+      const amount = parseFloat(document.getElementById('budgetLimitInput').value);
+      const [yearStr, monthStr] = selectedMonth.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
 
-      if (authToken) {
-        try {
-          const res = await fetch('/api/budget', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + authToken
-            },
-            body: JSON.stringify({ monthlyBudget: budget, currency })
+      try {
+        const { error } = await supabase
+          .from('budgets')
+          .upsert({
+            user_id: currentUser.id,
+            category: 'Overall',
+            amount,
+            month,
+            year
+          }, {
+            onConflict: 'user_id, category, month, year'
           });
-          if (res.ok) {
-            currentMonthlyBudget = budget;
-            currentCurrency = currency;
-            closeBudgetModal();
-            showToast('Monthly budget updated');
-            loadAllData();
-            return;
-          }
-        } catch (err) {
-          console.warn('API budget update failed, saving locally:', err);
-        }
+
+        if (error) throw error;
+
+        currentMonthlyBudget = amount;
+        closeBudgetModal();
+        showToast('Monthly budget ceiling saved to Supabase');
+        renderDashboardState();
+      } catch (err) {
+        console.error('Budget upsert error:', err);
+        alert('Could not save budget: ' + err.message);
       }
-
-      // Local fallback
-      const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-      const u = users[currentUser] || {};
-      u.budget = budget;
-      users[currentUser] = u;
-      localStorage.setItem('bt_users', JSON.stringify(users));
-
-      currentMonthlyBudget = budget;
-      currentCurrency = currency;
-      closeBudgetModal();
-      showToast('Budget updated');
-      loadAllData();
     }
 
-    function exportCSV() {
-      if (authToken) {
-        window.location.href = `/api/export?token=${authToken}`;
-        return;
-      }
+    function exportToCSV() {
+      const [yearStr, monthStr] = selectedMonth.split('-');
+      const monthPrefix = `${yearStr}-${monthStr}`;
+      const monthTxs = userTransactions.filter(t => t.transaction_date && t.transaction_date.startsWith(monthPrefix));
 
-      // Client-side export fallback
-      let csv = 'Transaction ID,Date,Type,Category,Amount,Description\n';
-      transactions.forEach(t => {
-        const cleanNote = (t.note || '').replace(/"/g, '""');
-        csv += `"${t.id}","${t.date}","${t.type}","${t.category}",${t.amount},"${cleanNote}"\n`;
+      let csv = 'Transaction ID,Date,Type,Category,Amount (₹),Description\n';
+      monthTxs.forEach(t => {
+        const desc = (t.description || '').replace(/"/g, '""');
+        csv += `"${t.id}","${t.transaction_date}","${t.type}","${t.category}",${t.amount},"${desc}"\n`;
       });
 
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `transactions_${selectedMonth}.csv`;
+      a.download = `supabase_transactions_${selectedMonth}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    // Startup
+    // UI Event Listeners
+    document.getElementById('btnLogout').addEventListener('click', handleLogout);
+    document.getElementById('btnOpenAddModal').addEventListener('click', openAddModal);
+    document.getElementById('btnCloseAddModal').addEventListener('click', closeAddModal);
+    document.getElementById('btnCancelAddModal').addEventListener('click', closeAddModal);
+    document.getElementById('addTxForm').addEventListener('submit', handleAddTransactionSubmit);
+
+    document.getElementById('btnCloseEditModal').addEventListener('click', closeEditModal);
+    document.getElementById('btnCancelEditModal').addEventListener('click', closeEditModal);
+    document.getElementById('editTxForm').addEventListener('submit', handleEditTransactionSubmit);
+
+    document.getElementById('btnOpenBudgetModal').addEventListener('click', openBudgetModal);
+    document.getElementById('btnAdjustAlert').addEventListener('click', openBudgetModal);
+    document.getElementById('btnCloseBudgetModal').addEventListener('click', closeBudgetModal);
+    document.getElementById('btnCancelBudgetModal').addEventListener('click', closeBudgetModal);
+    document.getElementById('budgetForm').addEventListener('submit', handleSaveBudgetSubmit);
+
+    document.getElementById('btnExportCSV').addEventListener('click', exportToCSV);
+
+    document.getElementById('modalTxType').addEventListener('change', (e) => {
+      populateCategoryOptions('modalTxCat', e.target.value);
+    });
+    document.getElementById('editTxType').addEventListener('change', (e) => {
+      populateCategoryOptions('editTxCat', e.target.value);
+    });
+
+    // Filtering controls
+    document.getElementById('segAll').addEventListener('click', () => setFilter('all'));
+    document.getElementById('segExpense').addEventListener('click', () => setFilter('expense'));
+    document.getElementById('segIncome').addEventListener('click', () => setFilter('income'));
+
+    function setFilter(type) {
+      filterType = type;
+      ['segAll', 'segExpense', 'segIncome'].forEach(id => document.getElementById(id).classList.remove('active'));
+      if (type === 'all') document.getElementById('segAll').classList.add('active');
+      if (type === 'expense') document.getElementById('segExpense').classList.add('active');
+      if (type === 'income') document.getElementById('segIncome').classList.add('active');
+      renderDashboardState();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => renderDashboardState());
+    document.getElementById('categoryFilter').addEventListener('change', () => renderDashboardState());
+    document.getElementById('sortSelect').addEventListener('change', () => renderDashboardState());
+
+    // Page Load Flow
     (async function init() {
-      const ok = await checkAuth();
-      if (!ok) return;
-      populateMonthDropdown();
-      loadAllData();
+      initClient();
+      populatePeriodDropdown();
+      const authenticated = await verifyAuth();
+      if (authenticated) {
+        await loadUserData();
+      }
     })();
   </script>
 </body>

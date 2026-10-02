@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account – Personal Budget Tracker</title>
-  <meta name="description" content="Register an account for Personal Budget Tracker.">
+  <meta name="description" content="Register an account for Personal Budget Tracker using Supabase.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -116,7 +117,7 @@
     }
     .btn-submit {
       width: 100%;
-      padding: 10px;
+      padding: 11px;
       background: #0f766e;
       color: #ffffff;
       border: none;
@@ -163,6 +164,20 @@
       font-weight: 600;
     }
     .auth-footer a:hover { text-decoration: underline; }
+
+    .db-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #0f766e;
+      background: #f0fdfa;
+      border: 1px solid #ccfbf1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -176,21 +191,20 @@
 
   <main class="main-wrapper">
     <div class="auth-card">
+      <div class="db-status-badge">
+        <span style="width:7px;height:7px;border-radius:50%;background:#0f766e;display:inline-block;"></span>
+        <span>Supabase PostgreSQL Integration</span>
+      </div>
+
       <h1 class="auth-title">Create your account</h1>
-      <p class="auth-sub">Set up your profile to start tracking transactions.</p>
+      <p class="auth-sub">Set up your profile to start tracking transactions in Supabase.</p>
 
       <div id="statusMsg" class="status-msg"></div>
 
       <form id="registerForm">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="fullName" class="form-label">Full Name</label>
-            <input type="text" id="fullName" class="form-input" placeholder="e.g. Rohith M.">
-          </div>
-          <div class="form-group">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" id="username" class="form-input" required autocomplete="username" placeholder="rohith">
-          </div>
+        <div class="form-group">
+          <label for="fullName" class="form-label">Full Name</label>
+          <input type="text" id="fullName" class="form-input" required autocomplete="name" placeholder="e.g. Rohith M.">
         </div>
 
         <div class="form-group">
@@ -201,15 +215,15 @@
         <div class="form-row">
           <div class="form-group">
             <label for="password" class="form-label">Password</label>
-            <input type="password" id="password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="At least 6 chars">
+            <input type="password" id="password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="Min. 6 chars">
           </div>
           <div class="form-group">
-            <label for="confirmPassword" class="form-label">Confirm</label>
-            <input type="password" id="confirmPassword" class="form-input" required minlength="6" autocomplete="new-password" placeholder="Re-enter password">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="form-input" required minlength="6" autocomplete="new-password" placeholder="Repeat password">
           </div>
         </div>
 
-        <button type="submit" id="submitBtn" class="btn-submit">Complete Registration</button>
+        <button type="submit" id="submitBtn" class="btn-submit">Register Account</button>
       </form>
 
       <div class="auth-footer">
@@ -218,11 +232,31 @@
     </div>
   </main>
 
-  <script>
+  <script type="module">
+    import { getSupabaseConfig } from './supabaseClient.js';
+
+    let supabase = null;
+
+    function getClient() {
+      if (!supabase && window.supabase) {
+        const { url, anonKey } = getSupabaseConfig();
+        supabase = window.supabase.createClient(url, anonKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage: window.localStorage
+          }
+        });
+      }
+      return supabase;
+    }
+
+    getClient();
+
     document.getElementById('registerForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const name = document.getElementById('fullName').value.trim();
-      const username = document.getElementById('username').value.trim();
+      const fullName = document.getElementById('fullName').value.trim();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
@@ -234,57 +268,78 @@
 
       if (password !== confirmPassword) {
         statusEl.className = 'status-msg error';
-        statusEl.textContent = 'Passwords do not match. Please re-enter.';
+        statusEl.textContent = 'Passwords do not match. Please verify and re-enter.';
+        return;
+      }
+
+      if (password.length < 6) {
+        statusEl.className = 'status-msg error';
+        statusEl.textContent = 'Password must be at least 6 characters.';
         return;
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating account...';
+      submitBtn.textContent = 'Creating Supabase account...';
 
       try {
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, email, password, name })
+        const client = getClient();
+        if (!client) throw new Error('Could not connect to Supabase client.');
+
+        // 1. Register with Supabase Auth
+        const { data, error } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName
+            }
+          }
         });
-        const result = await response.json();
 
-        if (response.ok && result.ok) {
-          sessionStorage.setItem('bt_auth_token', result.token);
-          sessionStorage.setItem('bt_current_user', result.user.username);
-          sessionStorage.setItem('bt_user_data', JSON.stringify(result.user));
+        if (error) {
+          // 9. Handle duplicate registration / email errors
+          if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+            throw new Error('An account with this email address already exists. Please Sign In.');
+          }
+          throw error;
+        }
 
+        const user = data.user;
+        if (!user) {
+          throw new Error('Registration did not return user details.');
+        }
+
+        // 2. Create corresponding profile in profiles table
+        try {
+          await client.from('profiles').upsert({
+            id: user.id,
+            full_name: fullName,
+            created_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+        } catch (profileErr) {
+          console.warn('Profile sync note:', profileErr.message);
+        }
+
+        // 3. Check if session was immediately established
+        if (data.session) {
           statusEl.className = 'status-msg success';
-          statusEl.textContent = 'Account created successfully! Preparing dashboard...';
-          setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
-          return;
+          statusEl.textContent = 'Registration successful! Opening dashboard...';
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 500);
         } else {
-          throw new Error(result.error || 'Registration failed');
+          // If email confirmation is required in project settings
+          statusEl.className = 'status-msg success';
+          statusEl.textContent = 'Account created! Redirecting to login...';
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 1200);
         }
       } catch (err) {
-        // Local fallback
-        const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
-        if (users[username]) {
-          statusEl.className = 'status-msg error';
-          statusEl.textContent = 'Username already taken locally. Please choose another.';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Complete Registration';
-          return;
-        }
-
-        users[username] = {
-          name: name || username,
-          password: password,
-          email: email,
-          transactions: [],
-          budget: 20000
-        };
-        localStorage.setItem('bt_users', JSON.stringify(users));
-        sessionStorage.setItem('bt_current_user', username);
-
-        statusEl.className = 'status-msg success';
-        statusEl.textContent = 'Account configured locally! Redirecting...';
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+        statusEl.className = 'status-msg error';
+        statusEl.textContent = err.message || 'Registration failed. Please try again.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register Account';
       }
     });
   </script>
