@@ -492,6 +492,14 @@ app.get(['/viewTransactions.jsp', '/viewTransactions'], (req, res) => res.redire
 // Static files
 app.use(express.static(__dirname));
 
+// Explicit HTML routes
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
 // Default entry
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -502,6 +510,10 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ ok: false, error: 'Endpoint not found' });
 });
 
-app.listen(port, host, () => {
-  console.log(`Personal Budget Tracker production server running at http://${host}:${port}`);
-});
+if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  app.listen(port, host, () => {
+    console.log(`Personal Budget Tracker production server running at http://${host}:${port}`);
+  });
+}
+
+export default app;
