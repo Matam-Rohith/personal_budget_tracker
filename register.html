@@ -132,23 +132,30 @@
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .status-msg {
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-radius: 6px;
       font-size: 13px;
       font-weight: 500;
+      line-height: 1.5;
       margin-bottom: 16px;
       display: none;
     }
     .status-msg.error {
       background: #fef2f2;
       border: 1px solid #fecaca;
-      color: #b91c1c;
+      color: #991b1b;
       display: block;
     }
     .status-msg.success {
       background: #f0fdf4;
       border: 1px solid #bbf7d0;
       color: #15803d;
+      display: block;
+    }
+    .status-msg.warn {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
       display: block;
     }
 
@@ -209,7 +216,8 @@
 
         <div class="form-group">
           <label for="email" class="form-label">Email Address</label>
-          <input type="email" id="email" class="form-input" required autocomplete="email" placeholder="name@example.com">
+          <input type="email" id="email" class="form-input" required autocomplete="email" placeholder="name@domain.com">
+          <span style="font-size:11px;color:#64748b;margin-top:3px;display:block;">Use standard email format (e.g. @gmail.com, @outlook.com, @yahoo.com).</span>
         </div>
 
         <div class="form-row">
@@ -279,13 +287,13 @@
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating Supabase account...';
+      submitBtn.textContent = 'Registering with Supabase...';
 
       try {
         const client = getClient();
         if (!client) throw new Error('Could not connect to Supabase client.');
 
-        // 1. Register with Supabase Auth
+        // Register with Supabase Auth
         const { data, error } = await client.auth.signUp({
           email,
           password,
@@ -297,9 +305,11 @@
         });
 
         if (error) {
-          // 9. Handle duplicate registration / email errors
           if (error.message.includes('User already registered') || error.message.includes('already exists')) {
-            throw new Error('An account with this email address already exists. Please Sign In.');
+            throw new Error('An account with this email address already exists. Please go to Sign In.');
+          }
+          if (error.message.includes('Email address') && error.message.includes('invalid')) {
+            throw new Error('Supabase rejected this email domain. Please use a valid email provider (e.g. Gmail, Outlook, Yahoo, or your company domain).');
           }
           throw error;
         }
@@ -309,7 +319,7 @@
           throw new Error('Registration did not return user details.');
         }
 
-        // 2. Create corresponding profile in profiles table
+        // Create profile in profiles table
         try {
           await client.from('profiles').upsert({
             id: user.id,
@@ -320,20 +330,25 @@
           console.warn('Profile sync note:', profileErr.message);
         }
 
-        // 3. Check if session was immediately established
+        // If session was immediately established (auto-confirm enabled)
         if (data.session) {
           statusEl.className = 'status-msg success';
           statusEl.textContent = 'Registration successful! Opening dashboard...';
           setTimeout(() => {
             window.location.href = 'dashboard.html';
-          }, 500);
+          }, 400);
         } else {
-          // If email confirmation is required in project settings
-          statusEl.className = 'status-msg success';
-          statusEl.textContent = 'Account created! Redirecting to login...';
-          setTimeout(() => {
-            window.location.href = 'login.html';
-          }, 1200);
+          // If project requires email verification
+          statusEl.className = 'status-msg warn';
+          statusEl.innerHTML = `
+            <strong>Account Registered in Supabase!</strong><br>
+            Your account was created. To log in immediately:<br>
+            1. If "Confirm email" is enabled in Supabase, click the confirmation link sent to <strong>${email}</strong>.<br>
+            2. Or turn off "Confirm email" in Supabase: <em>Dashboard &rarr; Authentication &rarr; Providers &rarr; Email &rarr; uncheck "Confirm email"</em>.<br><br>
+            <a href="login.html" style="font-weight:700;color:#0f766e;text-decoration:underline;">Proceed to Sign In &rarr;</a>
+          `;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Register Account';
         }
       } catch (err) {
         statusEl.className = 'status-msg error';
