@@ -518,7 +518,11 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ ok: false, error: 'Endpoint not found' });
 });
 
-if (process.env.VERCEL !== '1' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+// Start listening only when directly executed (e.g. node server.js)
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+const isServerlessEnv = Boolean(process.env.VERCEL || process.env.NOW_REGION || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+if (isDirectRun && !isServerlessEnv) {
   app.listen(port, host, () => {
     console.log(`Personal Budget Tracker production server running at http://${host}:${port}`);
   });

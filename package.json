@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Personal Budget Tracker",
   "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.x"
+  },
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "echo 'Build complete'"
+    "build": "node build.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
