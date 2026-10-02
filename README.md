@@ -1,72 +1,135 @@
-# 💰 Personal Budget Tracker
+# Personal Budget Tracker
 
-[![Demo](https://img.shields.io/badge/Demo-Watch_Video-red?style=for-the-badge&logo=google-drive)](https://drive.google.com/file/d/1Qn3TDdZuQhSy1FOtNEYqqewJtcLzC4ze/view?usp=drive_link)
-[![GitHub](https://img.shields.io/badge/GitHub-Repo-181717?style=for-the-badge&logo=github)](https://github.com/Matam-Rohith/personal_budget_tracker)
-![AngularJS](https://img.shields.io/badge/AngularJS-E23237?style=flat-square&logo=angularjs&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+A full-stack personal finance and expense tracking web application. Features a double-entry transaction ledger, monthly spending ceilings with threshold warning alerts, cash flow analytics, and exportable CSV audit trails.
 
-> A personal finance web app to track income, expenses, and savings with category-wise breakdowns, budget alerts, and visual reports.
+Designed for high reliability, zero telemetry clutter, and instant deployment across Vercel, Render, or any standard Node.js runtime.
 
 ---
 
-## 🎥 Demo
+## Key Capabilities
 
-[👉 Watch Demo Video](https://drive.google.com/file/d/1Qn3TDdZuQhSy1FOtNEYqqewJtcLzC4ze/view?usp=drive_link)
-
----
-
-## ✨ Features
-
-- 📊 **Category-wise Tracking** — Separate income and expense categories (food, rent, transport, etc.)
-- 🚨 **Budget Alerts** — Get notified when spending exceeds set limits
-- 📈 **Visual Reports** — Charts and graphs for spending breakdowns
-- 📆 **Date-wise Transactions** — Filter and view transactions by date range
-- 📱 **Responsive UI** — Works on mobile and desktop
-- 💾 **Persistent Storage** — Data saved in LocalStorage
+- **Double-Entry Ledger**: Record income credits and expense debits with categorized tagging, custom descriptions, and transaction timestamps.
+- **Budget Ceilings & Alerts**: Establish monthly spending targets with automated threshold indicators (80% warning and 100%+ limit breach banners).
+- **Interactive Visualizations**:
+  - **Category Spending Breakdown**: Chart.js doughnut chart detailing category share and total outlay.
+  - **6-Month Cash Flow Trends**: Comparative bar chart monitoring income versus expenses over recent months.
+- **Real-Time Data Controls**: Instant multi-condition filtering (credit/debit), category drill-down, full-text note search, and date/amount sorting.
+- **Data Export & Portability**: Stream transaction histories into standard CSV files for offline spreadsheets and tax accounting.
+- **User Authentication**: Secure credentials verification with Node.js native `crypto.scryptSync` password hashing and token-based session management.
+- **Offline & Resilient Fallback**: Seamless synchronization between the server REST API and browser storage (`localStorage`) ensuring high availability.
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack & Architecture
 
-| Layer | Technology |
-|---|---|
-| Frontend | HTML5, CSS3, JavaScript |
-| Framework | AngularJS |
-| Charts | Chart.js |
-| Storage | LocalStorage |
+- **Backend Runtime**: Node.js (v20+ / v22)
+- **Server Framework**: Express.js with JSON REST endpoints
+- **Security**: Native PBKDF2/Scrypt cryptographic password hashing, standard HTTP security headers
+- **Frontend**: Responsive modern web application, native DOM API, Chart.js, Plus Jakarta Sans & JetBrains Mono typography
+- **Data Layer**: File-backed JSON data store with automatic schema bootstrapping and in-memory cache
 
 ---
 
-## 🚀 Getting Started
+## Project Structure
 
-```bash
-# Clone the repository
-git clone https://github.com/Matam-Rohith/personal_budget_tracker.git
-
-cd personal_budget_tracker
-
-# Open in browser
-open index.html
+```text
+├── server.js              # Express REST API and static server
+├── db.js                  # Persistent JSON storage layer and crypto helpers
+├── index.html             # Landing page and product overview
+├── login.html             # Authentication interface with quick demo fill
+├── register.html          # New account registration and validation
+├── dashboard.html         # Main authenticated ledger, charts, and budget controls
+├── vercel.json            # Vercel deployment configuration
+├── render.yaml            # Render web service deployment configuration
+├── package.json           # Dependencies and runtime scripts
+└── metadata.json          # Application studio metadata
 ```
 
 ---
 
-## 📸 Screenshots
+## Local Development
 
-![Budget Tracker Header](budget.png)
+### Prerequisites
+
+- Node.js 20 or higher
+- npm (or bun)
+
+### Getting Started
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Matam-Rohith/personal_budget_tracker.git
+   cd personal_budget_tracker
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Start the local server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Access the application**:
+   Open [http://localhost:3000](http://localhost:3000) in your web browser.
+
+### Sample Demo Account
+
+For rapid inspection without completing registration, use the preloaded demo account:
+- **Username**: `demo`
+- **Password**: `demo123`
 
 ---
 
-## 👨‍💻 Author
+## API Reference
 
-**Matam Rohith**  
-[![Portfolio](https://img.shields.io/badge/Portfolio-000?style=flat-square&logo=vercel)](https://rohith-portfolio-six.vercel.app/)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/matam-rohith-1418ab1b4/)
+### Authentication
+- `POST /api/auth/register` — Register a new user account `{ username, email, password, name }`
+- `POST /api/auth/login` — Authenticate and receive a session token `{ username, password }`
+- `GET /api/auth/me` — Retrieve current authenticated user profile
+- `POST /api/auth/logout` — Terminate active session
+
+### Transactions
+- `GET /api/transactions` — Query transactions with parameters: `month`, `type`, `category`, `search`, `sortBy`, `sortOrder`
+- `POST /api/transactions` — Record a transaction `{ type, category, amount, date, note }`
+- `PUT /api/transactions/:id` — Update transaction properties
+- `DELETE /api/transactions/:id` — Delete a transaction entry
+
+### Budgets & Analytics
+- `GET /api/budget` — Retrieve user monthly budget target and currency
+- `PUT /api/budget` — Update monthly budget ceiling and currency symbol
+- `GET /api/summary?month=YYYY-MM` — Generate calculated metrics, category distribution, and 6-month cash flow trends
+- `GET /api/export` — Download complete transaction history as CSV
 
 ---
 
-## 📄 License
+## Deployment Guide
+
+### Deploying to Vercel
+
+The project includes `vercel.json` preconfigured for Vercel's Node.js runtime:
+
+1. Push your repository to GitHub.
+2. Import the project in the [Vercel Dashboard](https://vercel.com).
+3. Keep default build and install settings.
+4. Deploy. Vercel will route incoming requests to `server.js`.
+
+### Deploying to Render
+
+The repository includes a `render.yaml` blueprint:
+
+1. Log in to the [Render Dashboard](https://render.com).
+2. Select **New** > **Blueprint** and connect your repository.
+3. Render will provision a Web Service with:
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `node server.js`
+4. Click **Apply** to deploy.
+
+---
+
+## License
 
 This project is licensed under the [MIT License](LICENSE).

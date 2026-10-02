@@ -1,0 +1,8 @@
+{
+  "name": "Personal Budget Tracker",
+  "description": "Smart finance management to track income, manage expenses, and visualize spending patterns.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

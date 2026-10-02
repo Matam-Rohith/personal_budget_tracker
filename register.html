@@ -1,86 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register – Budget Tracker</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#2c3e50;height:100vh;display:flex;flex-direction:column}
-.top-bar{background:#fff;padding:14px 40px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.08)}
-.logo{font-size:18px;font-weight:700;color:rgb(60,158,153);text-decoration:none}
-.back-link{font-size:14px;color:rgb(60,158,153);text-decoration:none;font-weight:600}
-.back-link:hover{text-decoration:underline}
-.main{display:flex;flex:1}
-.left-container{width:50%;display:flex;justify-content:center;align-items:center;background:linear-gradient(135deg,#f0f4f8,#d9e2ec);padding:40px}
-.register-container{background:#fff;padding:44px 40px;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.12);text-align:center;width:340px}
-h2{margin-bottom:8px;color:rgb(60,158,153);font-size:26px}
-.subtitle{font-size:14px;color:#888;margin-bottom:28px}
-input[type=text],input[type=password],input[type=email]{width:100%;padding:12px 14px;margin-bottom:16px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;transition:border-color .2s;outline:none}
-input:focus{border-color:rgb(60,158,153)}
-.btn-submit{width:100%;padding:13px;background:rgb(60,158,153);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;transition:background .3s,transform .2s;margin-top:4px}
-.btn-submit:hover{background:rgb(45,130,126);transform:translateY(-1px)}
-.login-link{margin-top:18px;font-size:14px;color:#666}
-.login-link a{color:rgb(60,158,153);font-weight:600;text-decoration:none}
-.login-link a:hover{text-decoration:underline}
-.msg{padding:10px;border-radius:8px;margin-bottom:14px;font-size:14px;font-weight:600;display:none}
-.msg.success{background:#d4edda;color:#155724;display:block}
-.msg.error{background:#f8d7da;color:#721c24;display:block}
-.right-container{width:50%;background:#eaf1f8;display:flex;justify-content:center;align-items:center;padding:40px}
-.right-container img{width:85%;max-width:480px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
-.right-info{text-align:center}
-.right-info h3{font-size:22px;color:#1a1a2e;margin-bottom:12px}
-.right-info p{color:#666;font-size:15px;line-height:1.6;max-width:340px}
-@media(max-width:768px){.main{flex-direction:column}.left-container,.right-container{width:100%}.right-container{display:none}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account – Personal Budget Tracker</title>
+  <meta name="description" content="Register an account for Personal Budget Tracker.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+    .top-bar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      background: #0f766e;
+      color: #ffffff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .back-link {
+      font-size: 13px;
+      font-weight: 500;
+      color: #64748b;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .back-link:hover { color: #0f172a; }
+
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .auth-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+    }
+    .auth-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .auth-sub {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #0f172a;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: #0f766e;
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 10px;
+      background: #0f766e;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: #115e59; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .status-msg {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .status-msg.error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      display: block;
+    }
+    .status-msg.success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
+      display: block;
+    }
+
+    .auth-footer {
+      margin-top: 24px;
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+    }
+    .auth-footer a {
+      color: #0f766e;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .auth-footer a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
-<div class="top-bar">
-  <a href="index.html" class="logo">💰 BudgetTracker</a>
-  <a href="index.html" class="back-link">← Back to Home</a>
-</div>
-<div class="main">
-  <div class="left-container">
-    <div class="register-container">
-      <h2>Create Account</h2>
-      <p class="subtitle">Start tracking your finances today</p>
-      <div class="msg" id="msg"></div>
+  <header class="top-bar">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">₹</div>
+      <span>BudgetTracker</span>
+    </a>
+    <a href="login.html" class="back-link">Existing User? Sign In</a>
+  </header>
+
+  <main class="main-wrapper">
+    <div class="auth-card">
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-sub">Set up your profile to start tracking transactions.</p>
+
+      <div id="statusMsg" class="status-msg"></div>
+
       <form id="registerForm">
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="email" id="email" placeholder="Email Address" required>
-        <input type="password" id="password" placeholder="Password (min 6 chars)" required minlength="6">
-        <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
-        <button type="submit" class="btn-submit">Register</button>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fullName" class="form-label">Full Name</label>
+            <input type="text" id="fullName" class="form-input" placeholder="e.g. Rohith M.">
+          </div>
+          <div class="form-group">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" id="username" class="form-input" required autocomplete="username" placeholder="rohith">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" class="form-input" required autocomplete="email" placeholder="name@example.com">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="At least 6 chars">
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword" class="form-label">Confirm</label>
+            <input type="password" id="confirmPassword" class="form-input" required minlength="6" autocomplete="new-password" placeholder="Re-enter password">
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-submit">Complete Registration</button>
       </form>
-      <div class="login-link">Already have an account? <a href="login.html">Login here</a></div>
+
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Sign in here</a>
+      </div>
     </div>
-  </div>
-  <div class="right-container">
-    <div class="right-info">
-      <img src="register.png" alt="Register" onerror="this.style.display='none'">
-      <h3>Your finances, your control</h3>
-      <p>Join thousands of users who manage their budget smarter with our easy-to-use tracker.</p>
-    </div>
-  </div>
-</div>
-<script>
-document.getElementById('registerForm').addEventListener('submit',function(e){
-  e.preventDefault();
-  var u=document.getElementById('username').value.trim();
-  var em=document.getElementById('email').value.trim();
-  var p=document.getElementById('password').value;
-  var cp=document.getElementById('confirmPassword').value;
-  var msg=document.getElementById('msg');
-  msg.className='msg';
-  if(p!==cp){msg.textContent='Passwords do not match!';msg.className='msg error';return;}
-  var users=JSON.parse(localStorage.getItem('bt_users')||'{}');
-  if(users[u]){msg.textContent='Username already exists. Try another.';msg.className='msg error';return;}
-  users[u]={password:p,email:em,transactions:[],budget:0};
-  localStorage.setItem('bt_users',JSON.stringify(users));
-  msg.textContent='✅ Account created! Redirecting to login...';
-  msg.className='msg success';
-  setTimeout(function(){window.location.href='login.html';},1500);
-});
-</script>
+  </main>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('fullName').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const statusEl = document.getElementById('statusMsg');
+      const submitBtn = document.getElementById('submitBtn');
+
+      statusEl.className = 'status-msg';
+      statusEl.textContent = '';
+
+      if (password !== confirmPassword) {
+        statusEl.className = 'status-msg error';
+        statusEl.textContent = 'Passwords do not match. Please re-enter.';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating account...';
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password, name })
+        });
+        const result = await response.json();
+
+        if (response.ok && result.ok) {
+          sessionStorage.setItem('bt_auth_token', result.token);
+          sessionStorage.setItem('bt_current_user', result.user.username);
+          sessionStorage.setItem('bt_user_data', JSON.stringify(result.user));
+
+          statusEl.className = 'status-msg success';
+          statusEl.textContent = 'Account created successfully! Preparing dashboard...';
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+          return;
+        } else {
+          throw new Error(result.error || 'Registration failed');
+        }
+      } catch (err) {
+        // Local fallback
+        const users = JSON.parse(localStorage.getItem('bt_users') || '{}');
+        if (users[username]) {
+          statusEl.className = 'status-msg error';
+          statusEl.textContent = 'Username already taken locally. Please choose another.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Complete Registration';
+          return;
+        }
+
+        users[username] = {
+          name: name || username,
+          password: password,
+          email: email,
+          transactions: [],
+          budget: 20000
+        };
+        localStorage.setItem('bt_users', JSON.stringify(users));
+        sessionStorage.setItem('bt_current_user', username);
+
+        statusEl.className = 'status-msg success';
+        statusEl.textContent = 'Account configured locally! Redirecting...';
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+      }
+    });
+  </script>
 </body>
 </html>
